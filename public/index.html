@@ -1,0 +1,123 @@
+﻿<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wed-System – Pricelist Interaktif untuk Vendor Wedding</title>
+  <meta name="description" content="Wed-System membantu vendor membuat Pricelist Interaktif lengkap dengan add-on, kode diskon (persen/rupiah), dan bundling paket. Klien memilih paket, isi data acara (Nama/Tanggal/Tempat), lalu kirim ke WhatsApp." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { brand: { DEFAULT: "#0ea5e9", dark: "#0284c7" } } } } };
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 selection:bg-brand/20 selection:text-white">
+  <!-- NAV -->
+  <nav class="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
+    <div class="font-bold tracking-wide">Wed-System</div>
+    <div class="hidden sm:flex gap-3">
+      <a href="/auth" class="px-4 py-2 rounded-xl bg-transparent border border-white/20 hover:bg-white/10">Login</a>
+      <a href="/auth?mode=register" class="px-4 py-2 rounded-xl bg-brand hover:bg-brand-dark text-slate-900 font-semibold">Daftar</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="relative">
+    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-slate-900/40 to-slate-950"></div>
+    <section class="max-w-6xl mx-auto px-6 pt-6 pb-12 text-center">
+      <h1 class="text-3xl sm:text-5xl md:text-6xl font-extrabold leading-tight">
+        Wed-System – <span class="text-brand">Solusi Pricelist Interaktif</span> untuk Vendor Wedding
+      </h1>
+      <p class="mt-4 text-slate-300 max-w-3xl mx-auto">
+        Bangun <b>Pricelist Interaktif</b> yang bisa dipilih langsung oleh calon klien:
+        <b>add-on</b> fleksibel, <b>kode diskon</b> (persen atau rupiah), dan <b>bundling paket</b> (potongan % & kombinasi paket).
+        Klien cukup pilih paket & add-on, isi <b>Nama</b>, <b>Tanggal Acara</b>, dan <b>Tempat Acara</b> — total otomatis terhitung & bisa
+        <b>dikirim ke WhatsApp admin vendor</b> sekali klik.
+      </p>
+      <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="/auth?mode=register" class="px-6 py-3 rounded-xl bg-brand hover:bg-brand-dark text-slate-900 font-semibold">Buat Pricelist Vendor</a>
+        <a href="/auth" class="px-6 py-3 rounded-xl border border-white/20 hover:bg-white/10">Login Vendor</a>
+      </div>
+    </section>
+  </header>
+
+  <!-- FITUR PRICELIST -->
+  <section class="max-w-6xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">Apa itu Pricelist Interaktif?</h2>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="rounded-2xl border border-white/10 bg-slate-900/40 p-5">
+        <h3 class="font-semibold">Form Pricelist Vendor</h3>
+        <p class="text-slate-300 text-sm mt-1">Buat paket per jenis acara (wedding, lamaran, prewedding) dengan detail & harga.</p>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-slate-900/40 p-5">
+        <h3 class="font-semibold">Add-on Fleksibel</h3>
+        <p class="text-slate-300 text-sm mt-1">Opsi layanan/produk ekstra yang bisa dicentang oleh klien.</p>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-slate-900/40 p-5">
+        <h3 class="font-semibold">Kode Diskon</h3>
+        <p class="text-slate-300 text-sm mt-1">Atur diskon dalam <b>persen</b> atau <b>rupiah</b> (opsional batas maksimum).</p>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-slate-900/40 p-5">
+        <h3 class="font-semibold">Bundling Paket</h3>
+        <p class="text-slate-300 text-sm mt-1">Gabungkan paket tertentu dan set <b>potongan %</b> sesuai kebutuhan.</p>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-slate-900/40 p-5">
+        <h3 class="font-semibold">Hitung Otomatis</h3>
+        <p class="text-slate-300 text-sm mt-1">Subtotal, diskon, dan total dihitung otomatis secara transparan.</p>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-slate-900/40 p-5">
+        <h3 class="font-semibold">Langsung WhatsApp</h3>
+        <p class="text-slate-300 text-sm mt-1">Klien isi <b>Nama/Tanggal/Tempat</b>, lalu kirim detail ke WA admin vendor.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HARGA -->
+  <section class="max-w-6xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-4">Harga</h2>
+    <div class="rounded-2xl border border-brand/30 bg-slate-900/60 p-6 flex items-center justify-between flex-col sm:flex-row gap-4">
+      <div>
+        <div class="text-3xl font-extrabold text-brand">Rp 50.000 <span class="text-base font-medium text-slate-300">/ bulan</span></div>
+        <div class="text-slate-300 text-sm">Termasuk semua fitur Pricelist Interaktif (add-on, diskon, bundling, WhatsApp).</div>
+      </div>
+      <div class="flex gap-3">
+        <a href="/auth?mode=register" class="px-6 py-3 rounded-xl bg-brand hover:bg-brand-dark text-slate-900 font-semibold">Daftar Sekarang</a>
+        <a href="/auth" class="px-6 py-3 rounded-xl border border-white/20 hover:bg-white/10">Login</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- KONTAK -->
+  <section class="max-w-6xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-4">Kontak</h2>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div class="rounded-2xl border border-white/10 bg-slate-900/40 p-5">
+        <div class="text-slate-300">Kontak person</div>
+        <div class="text-lg font-semibold">0851-7693-2228</div>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-slate-900/40 p-5">
+        <div class="text-slate-300">Alamat kantor</div>
+        <div class="text-lg font-semibold">Bukit Mekar Wangi Cluster Alamanda Blok D2/33,<br/>Tanah Sareal, Kota Bogor 16168</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="max-w-6xl mx-auto px-6 py-10 text-slate-400 text-sm border-t border-white/10">
+    © <span id="y"></span> Wed-System. All rights reserved.
+  </footer>
+
+  <!-- Firebase init (pakai bucket .appspot.com agar SDK kompatibel) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyCVNDoM04DtzRda1xMLj6q6FcBLkHbaicE",
+      authDomain: "wedsystem25.firebaseapp.com",
+      projectId: "wedsystem25",
+      storageBucket: "wedsystem25.appspot.com",
+      messagingSenderId: "144669260555",
+      appId: "1:144669260555:web:6de0fff3c43d46a606400e"
+    };
+    initializeApp(firebaseConfig);
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

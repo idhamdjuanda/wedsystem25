@@ -1,0 +1,71 @@
+rules_version = "2";
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.uid == "SjQat8zBs2dZaRNzzJXRJF05Oi42"; // SUPERADMIN_UID
+    }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+
+    function vendorDoc(uid) {
+      return get(/databases/$(database)/documents/vendors/$(uid));
+    }
+
+    // aktif jika:
+    // - status == "aktif" && (activeEndsAt kosong || > now)
+    // - atau status == "trial" && trialEndsAt > now
+    function isVendorActive(uid) {
+      return (vendorDoc(uid).data.status == "aktif" &&
+              (!('activeEndsAt' in vendorDoc(uid).data) ||
+                vendorDoc(uid).data.activeEndsAt > request.time))
+          || (vendorDoc(uid).data.status == "trial" &&
+              ('trialEndsAt' in vendorDoc(uid).data) &&
+               vendorDoc(uid).data.trialEndsAt > request.time);
+    }
+
+    function canPublicReadPricelist(uid) {
+      return isVendorActive(uid) &&
+             (vendorDoc(uid).data.public == true ||
+              vendorDoc(uid).data.publicPricelist == true);
+    }
+    function canPublicCreateMou(uid) {
+      return isVendorActive(uid) &&
+             (vendorDoc(uid).data.publicMou == true);
+    }
+
+    match /vendors/{uid} {
+      allow read: if isOwner(uid) || isSuperAdmin() || canPublicReadPricelist(uid) || canPublicCreateMou(uid);
+
+      allow create: if isOwner(uid);
+      allow update, delete: if isOwner(uid) || isSuperAdmin();
+
+      match /packages/{docId} {
+        allow read: if isOwner(uid) || isSuperAdmin() || canPublicReadPricelist(uid);
+        allow create, update, delete: if isOwner(uid) || isSuperAdmin();
+      }
+
+      match /addons/{docId} {
+        allow read: if isOwner(uid) || isSuperAdmin() || canPublicReadPricelist(uid);
+        allow create, update, delete: if isOwner(uid) || isSuperAdmin();
+      }
+
+      match /discounts/{docId} {
+        allow read: if isOwner(uid) || isSuperAdmin();
+        allow create, update, delete: if isOwner(uid) || isSuperAdmin();
+      }
+
+      match /bundles/{docId} {
+        allow read: if isOwner(uid) || isSuperAdmin() || canPublicReadPricelist(uid);
+        allow create, update, delete: if isOwner(uid) || isSuperAdmin();
+      }
+
+      match /mouForms/{docId} {
+        allow create: if canPublicCreateMou(uid);
+        allow read, update, delete: if isOwner(uid) || isSuperAdmin();
+      }
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

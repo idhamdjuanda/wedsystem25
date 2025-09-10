@@ -1,0 +1,26 @@
+﻿{
+    "hosting":  {
+                    "public":  "public",
+                    "ignore":  [
+                                   "firebase.json",
+                                   "**/.*",
+                                   "**/node_modules/**"
+                               ],
+                    "rewrites":  [
+                                     {
+                                         "destination":  "/auth.html",
+                                         "source":  "/auth"
+                                     },
+                                     {
+                                         "destination":  "/index.html",
+                                         "source":  "**"
+                                     }
+                                 ]
+                },
+    "emulators":  {
+                      "hosting":  {
+                                      "host":  "127.0.0.1",
+                                      "port":  5000
+                                  }
+                  }
+}

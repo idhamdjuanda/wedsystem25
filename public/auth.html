@@ -1,0 +1,140 @@
+﻿<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Login — Wed-System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme:{ extend:{ colors:{ brand:{DEFAULT:'#0ea5e9',dark:'#0284c7'} } } } };
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <div class="max-w-xl mx-auto px-6 py-12">
+    <a href="/index.html" class="text-slate-400 hover:text-white">&larr; Kembali ke Landing</a>
+    <h1 class="text-3xl font-extrabold mt-3">Masuk / Daftar</h1>
+    <p class="text-slate-300">Gunakan email & password yang terdaftar.</p>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mt-6">
+      <button id="tab-login"   class="px-4 py-2 rounded-xl bg-brand text-slate-900 font-semibold">Masuk</button>
+      <button id="tab-register"class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700">Daftar</button>
+      <button id="tab-reset"   class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700">Lupa password</button>
+    </div>
+
+    <!-- LOGIN -->
+    <form id="form-login" class="mt-6 space-y-3">
+      <input id="loginEmail" type="email" placeholder="you@example.com" class="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10"/>
+      <input id="loginPass"  type="password" placeholder="password" class="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10"/>
+      <button id="btnLogin" type="submit" class="w-full px-4 py-3 rounded-xl bg-brand hover:bg-brand-dark text-slate-900 font-semibold">Masuk</button>
+      <div class="text-right"><a id="goReset1" class="cursor-pointer text-brand">Lupa password?</a></div>
+    </form>
+
+    <!-- REGISTER -->
+    <form id="form-register" class="mt-6 space-y-3 hidden">
+      <input id="regEmail" type="email" placeholder="you@example.com" class="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10"/>
+      <input id="regPass"  type="password" placeholder="password (min 6)" class="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10"/>
+      <button id="btnRegister" type="submit" class="w-full px-4 py-3 rounded-xl bg-brand hover:bg-brand-dark text-slate-900 font-semibold">Daftar</button>
+      <div class="text-right"><a id="goLogin1" class="cursor-pointer text-brand">Sudah punya akun? Masuk</a></div>
+    </form>
+
+    <!-- RESET -->
+    <form id="form-reset" class="mt-6 space-y-3 hidden">
+      <input id="resetEmail" type="email" placeholder="email terdaftar" class="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10"/>
+      <button id="btnReset" type="submit" class="w-full px-4 py-3 rounded-xl bg-brand hover:bg-brand-dark text-slate-900 font-semibold">Kirim link reset</button>
+      <div class="text-right"><a id="goLogin2" class="cursor-pointer text-brand">Kembali ke login</a></div>
+    </form>
+
+    <div id="status" class="mt-4 text-sm text-slate-300"></div>
+    <div id="who" class="mt-2 text-sm text-emerald-400"></div>
+  </div>
+
+  <!-- Firebase Auth -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { 
+      getAuth, onAuthStateChanged, signInWithEmailAndPassword, 
+      createUserWithEmailAndPassword, sendPasswordResetEmail 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCVNDoM04DtzRda1xMLj6q6FcBLkHbaicE",
+      authDomain: "wedsystem25.firebaseapp.com",
+      projectId: "wedsystem25",
+      storageBucket: "wedsystem25.appspot.com",
+      messagingSenderId: "144669260555",
+      appId: "1:144669260555:web:6de0fff3c43d46a606400e"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const $ = (id)=>document.getElementById(id);
+    function setMode(mode){
+      $("form-login").classList.toggle("hidden", mode!=="login");
+      $("form-register").classList.toggle("hidden", mode!=="register");
+      $("form-reset").classList.toggle("hidden", mode!=="reset");
+      for (const [id, m] of [["tab-login","login"],["tab-register","register"],["tab-reset","reset"]]) {
+        $(id).classList.toggle("bg-brand", mode===m);
+        $(id).classList.toggle("text-slate-900", mode===m);
+        $(id).classList.toggle("bg-slate-800", mode!==m);
+      }
+    }
+    const params = new URLSearchParams(location.search);
+    setMode(params.get("mode") || "login");
+
+    $("tab-login").onclick    = ()=>{ setMode("login");    history.replaceState({}, "", "/auth"); };
+    $("tab-register").onclick = ()=>{ setMode("register"); history.replaceState({}, "", "/auth?mode=register"); };
+    $("tab-reset").onclick    = ()=>{ setMode("reset");    history.replaceState({}, "", "/auth?mode=reset"); };
+    $("goReset1").onclick = ()=>$("tab-reset").click();
+    $("goLogin1").onclick = ()=>$("tab-login").click();
+    $("goLogin2").onclick = ()=>$("tab-login").click();
+
+    function info(msg, color="text-slate-300"){
+      const el = $("status");
+      el.className = "mt-4 text-sm " + color;
+      el.textContent = msg;
+    }
+
+    onAuthStateChanged(auth, (u)=>{
+      $("who").textContent = u ? ("✅ Logged in: " + (u.email||u.uid)) : "";
+    });
+
+    // LOGIN
+    $("form-login").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      info("Memproses…");
+      try{
+        const email = $("loginEmail").value.trim();
+        const pass  = $("loginPass").value;
+        await signInWithEmailAndPassword(auth, email, pass);
+        info("Berhasil masuk. Mengalihkan…", "text-emerald-400");
+        // location.href = "/dashboard";
+      }catch(err){ info("Gagal login: " + err.message, "text-rose-400"); }
+    });
+
+    // REGISTER
+    $("form-register").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      info("Memproses pendaftaran…");
+      try{
+        const email = $("regEmail").value.trim(); 
+        const pass  = $("regPass").value;
+        await createUserWithEmailAndPassword(auth, email, pass);
+        info("Pendaftaran berhasil. Silakan lengkapi profil di dashboard.", "text-emerald-400");
+        // location.href = "/dashboard";
+      }catch(err){ info("Gagal daftar: " + err.message, "text-rose-400"); }
+    });
+
+    // RESET PASSWORD
+    document.getElementById("form-reset").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      info("Mengirim tautan reset…");
+      try{
+        const email = $("resetEmail").value.trim();
+        await sendPasswordResetEmail(auth, email);
+        info("Tautan reset dikirim ke " + email, "text-emerald-400");
+      }catch(err){ info("Gagal kirim reset: " + err.message, "text-rose-400"); }
+    });
+  </script>
+</body>
+</html>

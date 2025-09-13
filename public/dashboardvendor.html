@@ -1,0 +1,141 @@
+﻿<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard Vendor — Wed-System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .hidden{ display:none }
+    .tabbtn.active{ background:#10b981 !important; color:#0b132b }
+    /* pastikan tombol/tab selalu bisa diklik */
+    #btnPay,#btnRefreshStatus,.tabbtn,#btnLogout{ position:relative; z-index:2147483646; pointer-events:auto!important; }
+  </style>
+
+  <!-- Force-Click: nonaktifkan penangkap klik di luar konten -->
+  <script>
+  (function(){
+    function forceClick(){
+      var root=document.getElementById("clickRoot");
+      if(!root){
+        root=document.createElement("div"); root.id="clickRoot";
+        while(document.body.firstChild && document.body.firstChild!==root){
+          root.appendChild(document.body.firstChild);
+        }
+        document.body.appendChild(root);
+      }
+      var st=document.getElementById("__forceClickCSS");
+      if(!st){
+        st=document.createElement("style"); st.id="__forceClickCSS";
+        st.textContent='*{pointer-events:none!important}#clickRoot,#clickRoot *{pointer-events:auto!important}';
+        document.head.appendChild(st);
+      }
+      var b=document.getElementById("__overlayBadge");
+      if(!b){ b=document.createElement("div"); b.id="__overlayBadge"; document.body.appendChild(b); }
+      Object.assign(b.style,{position:"fixed",bottom:"8px",right:"8px",background:"#10b981",color:"#0b132b",padding:"6px 10px",borderRadius:"8px",zIndex:"2147483647",fontSize:"12px"});
+      b.textContent="Force-Click aktif";
+    }
+    if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",forceClick); else forceClick();
+  })();
+  </script>
+
+  <!-- Tab controller + logout -->
+  <script>
+    function __showTab(name){
+      document.querySelectorAll(".tab").forEach(el=>el.classList.add("hidden"));
+      document.querySelectorAll(".tabbtn").forEach(el=>el.classList.remove("active"));
+      const sec = document.getElementById("tab-"+name);
+      const btn = document.querySelector('.tabbtn[data-tab="'+name+'"]');
+      if(sec) sec.classList.remove("hidden");
+      if(btn) btn.classList.add("active");
+      window.scrollTo({top:0, behavior:"instant"});
+    }
+    async function __logout(){ try{ if(window.auth) await window.auth.signOut(); }catch(_){ } location.href="/auth"; }
+    // Redirect paksa jika masih /vendor.html
+    if(location.pathname.toLowerCase()==="/vendor.html"){ location.replace("/dashboardvendor"); }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <header class="max-w-6xl mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold">Dashboard Vendor</h1>
+    <div id="dbgLine" class="text-xs text-amber-300 mt-1">Init…</div>
+  </header>
+
+  <main id="main" class="max-w-6xl mx-auto px-4 space-y-6">
+    <!-- Status -->
+    <section class="p-4 rounded-xl bg-slate-800/60 border border-slate-700">
+      <div class="text-sm text-slate-400">Doc Source: <span id="docPath">—</span></div>
+      <div class="mt-2 text-lg">Status: <span id="subStatus" class="font-semibold">—</span></div>
+      <div class="text-sm text-slate-300">Countdown: <span id="subCountdown">—</span></div>
+      <pre id="debugVals" class="mt-2 text-xs text-slate-400 whitespace-pre-wrap"></pre>
+    </section>
+
+    <!-- Aksi pembayaran -->
+    <section class="flex flex-wrap gap-3">
+      <button id="btnPay" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700">Bayar / Perpanjang 1 Bulan</button>
+      <button id="btnRefreshStatus" class="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700">Refresh Status Pembayaran</button>
+      <a href="/index.html" class="px-4 py-2 rounded-lg bg-slate-600 hover:bg-slate-700">Kembali ke Landing</a>
+    </section>
+
+    <!-- NAV -->
+    <nav class="flex flex-wrap gap-2">
+      <button data-tab="profile"  class="tabbtn px-3 py-2 rounded bg-slate-700 hover:bg-slate-600" onclick="__showTab('profile')">Profil Vendor</button>
+      <button data-tab="pricelist" class="tabbtn px-3 py-2 rounded bg-slate-700 hover:bg-slate-600" onclick="__showTab('pricelist')">Pricelist</button>
+      <button data-tab="addon"     class="tabbtn px-3 py-2 rounded bg-slate-700 hover:bg-slate-600" onclick="__showTab('addon')">Add-on</button>
+      <button data-tab="discount"  class="tabbtn px-3 py-2 rounded bg-slate-700 hover:bg-slate-600" onclick="__showTab('discount')">Kode Diskon</button>
+      <button data-tab="bundling"  class="tabbtn px-3 py-2 rounded bg-slate-700 hover:bg-slate-600" onclick="__showTab('bundling')">Bundling</button>
+      <button id="btnLogout" class="ml-auto px-3 py-2 rounded bg-rose-600 hover:bg-rose-700" onclick="__logout()">Keluar</button>
+    </nav>
+
+    <!-- PROFILE -->
+    <section id="tab-profile" class="tab p-4 rounded-xl bg-slate-800/40 border border-slate-700">
+      <div id="profileBox" class="grid sm:grid-cols-2 gap-3 text-sm">
+        <div class="text-slate-400 text-sm">Memuat profil…</div>
+      </div>
+    </section>
+
+    <!-- PRICELIST -->
+    <section id="tab-pricelist" class="tab hidden p-4 rounded-xl bg-slate-800/40 border border-slate-700">
+      <div class="flex items-center gap-2 mb-3">
+        <label class="text-sm text-slate-400">Kategori:</label>
+        <select id="plCat" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm">
+          <option value="wedding">Wedding</option>
+          <option value="prewedding">Prewedding</option>
+          <option value="lamaran">Lamaran</option>
+          <option value="all">Semua</option>
+        </select>
+      </div>
+      <div id="plList" class="grid md:grid-cols-2 gap-3"></div>
+      <div id="plEmpty" class="text-slate-400 text-sm hidden">Belum ada data pricelist.</div>
+    </section>
+
+    <!-- ADD-ON -->
+    <section id="tab-addon" class="tab hidden p-4 rounded-xl bg-slate-800/40 border border-slate-700">
+      <div id="addonList" class="grid md:grid-cols-2 gap-3"></div>
+      <div id="addonEmpty" class="text-slate-400 text-sm hidden">Belum ada add-on.</div>
+    </section>
+
+    <!-- DISKON -->
+    <section id="tab-discount" class="tab hidden p-4 rounded-xl bg-slate-800/40 border border-slate-700">
+      <div id="discList" class="grid md:grid-cols-2 gap-3"></div>
+      <div id="discEmpty" class="text-slate-400 text-sm hidden">Belum ada kode diskon.</div>
+    </section>
+
+    <!-- BUNDLING -->
+    <section id="tab-bundling" class="tab hidden p-4 rounded-xl bg-slate-800/40 border border-slate-700">
+      <div id="bundleList" class="grid md:grid-cols-2 gap-3"></div>
+      <div id="bundleEmpty" class="text-slate-400 text-sm hidden">Belum ada bundling.</div>
+    </section>
+
+    <!-- SMOKE TEST -->
+    <section class="mt-2 p-3 rounded-lg bg-slate-800/40 border border-slate-700">
+      <button onclick="alert('Klik berfungsi ✅');" class="px-3 py-2 rounded bg-blue-600 hover:bg-blue-700">Tes Klik (inline)</button>
+    </section>
+  </main>
+
+  <!-- Urutan WAJIB -->
+  <script type="module" src="/vendor-init.js"></script>
+  <script src="/vendor.js"></script>
+  <script>document.addEventListener("DOMContentLoaded",()=>__showTab('profile'));</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+﻿<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Menyelesaikan Pembayaran…</title>
+    <style>body{font-family:system-ui,Segoe UI,Arial;margin:40px;color:#0f172a} .box{max-width:560px;margin:auto} .muted{opacity:.7}</style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>Memproses pembayaran…</h1>
+      <p class="muted">Harap tunggu sebentar. Kami sedang sinkronisasi status transaksi.</p>
+    </div>
+    <script type="module">
+      (async () => {
+        const p = new URLSearchParams(location.search);
+        const order = p.get("order_id");
+        if(order){
+          try { await fetch("/midtrans/sync", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ order_id: order }) }); }
+          catch(e){}
+        }
+        location.replace("/dashboardvendor");
+      })();
+    </script>
+  </body>
+</html>

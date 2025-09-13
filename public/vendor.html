@@ -1,0 +1,188 @@
+﻿<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Dashboard Vendor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-200">
+  <div class="max-w-5xl mx-auto p-4 md:p-6">
+    <h1 class="text-3xl font-bold mb-1">Dashboard Vendor</h1>
+    <div class="text-amber-300 mb-4"><span id="fbReady">Firebase belum siap</span></div>
+
+    <!-- STATUS -->
+    <div class="bg-slate-800/70 rounded-xl p-4 mb-4">
+      <div class="text-sm opacity-70">Doc Source: <span id="docSource">—</span></div>
+      <div class="mt-1">Status: <span id="planText">—</span></div>
+      <div>Countdown: <span id="countdown">—</span></div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="flex flex-wrap gap-3 items-center mb-5">
+      <button id="btnPay" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500">Bayar / Perpanjang 1 Bulan</button>
+      <button id="btnRefreshPay" class="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500">Refresh Status Pembayaran</button>
+      <a href="/index.html" class="px-4 py-2 rounded-lg bg-slate-600 hover:bg-slate-500">Kembali ke Landing</a>
+      <button id="btnLogout" class="ml-auto px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500">Keluar</button>
+    </div>
+
+    <!-- TABS -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button data-tab="profile"  class="tab px-4 py-2 rounded-lg bg-emerald-700">Profil Vendor</button>
+      <button data-tab="pricelist" class="tab px-4 py-2 rounded-lg bg-slate-700">Pricelist</button>
+      <button data-tab="addon"     class="tab px-4 py-2 rounded-lg bg-slate-700">Add-on</button>
+      <button data-tab="discount"  class="tab px-4 py-2 rounded-lg bg-slate-700">Kode Diskon</button>
+      <button data-tab="bundle"    class="tab px-4 py-2 rounded-lg bg-slate-700">Bundling</button>
+    </div>
+
+    <!-- PANEL: PROFIL -->
+    <div id="panel-profile" class="panel">
+      <div class="bg-slate-800/70 rounded-xl p-4 space-y-3">
+        <div class="text-sm opacity-70" id="profileInfo">Memuat profil…</div>
+
+        <div class="grid md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm opacity-70">Nama/Brand</label>
+            <input id="fBrand" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Nama brand">
+          </div>
+          <div>
+            <label class="text-sm opacity-70">WhatsApp (628…)</label>
+            <input id="fWa" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="628xxxx">
+          </div>
+          <div class="md:col-span-2">
+            <label class="text-sm opacity-70">Alamat</label>
+            <input id="fAddr" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Alamat lengkap">
+          </div>
+          <div>
+            <label class="text-sm opacity-70">Kota / Area</label>
+            <input id="fCity" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Contoh: Jabodetabek">
+          </div>
+          <div>
+            <label class="text-sm opacity-70">Bank</label>
+            <input id="fBankName" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="BCA/BNI/…">
+          </div>
+          <div>
+            <label class="text-sm opacity-70">No. Rekening</label>
+            <input id="fBankNo" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="123xxxx">
+          </div>
+          <div>
+            <label class="text-sm opacity-70">Atas Nama</label>
+            <input id="fBankHolder" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Nama pemilik">
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button id="btnSaveProfile" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500">Simpan Profil</button>
+          <span id="saveInfo" class="ml-3 text-sm opacity-70"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL: PRICELIST -->
+    <div id="panel-pricelist" class="panel hidden">
+      <div class="bg-slate-800/70 rounded-xl p-4 space-y-4">
+        <div class="flex flex-col md:flex-row gap-3">
+          <select id="plType" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 w-full md:w-48">
+            <option value="wedding">Wedding</option>
+            <option value="lamaran">Lamaran</option>
+            <option value="prewedding">Prewedding</option>
+          </select>
+          <input id="plName" class="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Nama paket">
+          <input id="plDetail" class="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Detail paket (opsional)">
+          <input id="plPrice" class="w-40 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Harga (angka)">
+          <button id="plAdd" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500">Tambahkan</button>
+        </div>
+        <div id="plInfo" class="text-sm opacity-70">—</div>
+        <div id="plList" class="divide-y divide-slate-700 rounded-lg overflow-hidden border border-slate-700"></div>
+      </div>
+    </div>
+
+    <!-- PANEL: ADD-ON -->
+    <div id="panel-addon" class="panel hidden">
+      <div class="bg-slate-800/70 rounded-xl p-4 space-y-4">
+        <div class="flex flex-col md:flex-row gap-3">
+          <input id="adName" class="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Nama add-on">
+          <input id="adPrice" class="w-40 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Harga (angka)">
+          <button id="adAdd" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500">Tambahkan</button>
+        </div>
+        <div id="adInfo" class="text-sm opacity-70">—</div>
+        <div id="adList" class="divide-y divide-slate-700 rounded-lg overflow-hidden border border-slate-700"></div>
+      </div>
+    </div>
+
+    <!-- PANEL: KODE DISKON -->
+    <div id="panel-discount" class="panel hidden">
+      <div class="bg-slate-800/70 rounded-xl p-4 space-y-4">
+        <div class="grid md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm opacity-70">Kode</label>
+            <input id="dcCode" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Contoh: DISKON10">
+          </div>
+          <div>
+            <label class="text-sm opacity-70">Jenis Potongan</label>
+            <select id="dcType" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700">
+              <option value="percent">% (persen)</option>
+              <option value="amount">Rp (rupiah)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm opacity-70">Nilai Potongan</label>
+            <input id="dcValue" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Misal: 10 atau 500000">
+          </div>
+          <div>
+            <label class="text-sm opacity-70">Berlaku Untuk</label>
+            <select id="dcScope" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700">
+              <option value="all">Semua paket</option>
+              <option value="selected">Paket terpilih</option>
+            </select>
+          </div>
+          <div class="md:col-span-2" id="dcPkgWrap" style="display:none">
+            <div class="text-sm opacity-70 mb-2">Pilih paket:</div>
+            <div id="dcPkgList" class="grid sm:grid-cols-2 gap-2"></div>
+          </div>
+          <div class="flex items-center gap-4">
+            <label class="inline-flex items-center gap-2"><input id="dcActive" type="checkbox" class="accent-emerald-500" checked> Aktif</label>
+            <label class="inline-flex items-center gap-2"><input id="dcStack"  type="checkbox" class="accent-sky-500" checked> Bisa digabung (stackable)</label>
+          </div>
+        </div>
+        <div>
+          <button id="dcAdd" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500">Tambahkan Kode Diskon</button>
+          <span id="dcInfo" class="ml-3 text-sm opacity-70">—</span>
+        </div>
+        <div id="dcList" class="mt-3 divide-y divide-slate-700 rounded-lg overflow-hidden border border-slate-700"></div>
+      </div>
+    </div>
+
+    <!-- PANEL: BUNDLING -->
+    <div id="panel-bundle" class="panel hidden">
+      <div class="bg-slate-800/70 rounded-xl p-4 space-y-4">
+        <div class="grid md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm opacity-70">Nama Bundling</label>
+            <input id="bdName" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Contoh: Bundling (wedding+prewedding)">
+          </div>
+          <div>
+            <label class="text-sm opacity-70">Diskon Bundling (%)</label>
+            <input id="bdPct" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700" placeholder="Misal: 5">
+          </div>
+          <div class="md:col-span-2">
+            <div class="text-sm opacity-70 mb-2">Pilih paket yang di-bundle:</div>
+            <div id="bdPkgList" class="grid sm:grid-cols-2 gap-2"></div>
+          </div>
+          <div class="flex items-center gap-4">
+            <label class="inline-flex items-center gap-2"><input id="bdActive" type="checkbox" class="accent-emerald-500" checked> Aktif</label>
+          </div>
+        </div>
+        <div>
+          <button id="bdAdd" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500">Tambahkan Bundling</button>
+          <span id="bdInfo" class="ml-3 text-sm opacity-70">—</span>
+        </div>
+        <div id="bdList" class="mt-3 divide-y divide-slate-700 rounded-lg overflow-hidden border border-slate-700"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/vendor-boot.js?v=6"></script>
+  <script type="module" src="/vendor.js?v=38"></script>
+</body>
+</html>

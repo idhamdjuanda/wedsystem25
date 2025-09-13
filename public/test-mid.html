@@ -1,0 +1,19 @@
+﻿<!doctype html><meta charset="utf-8">
+<title>Test Midtrans Create</title>
+<body style="font:14px system-ui;background:#0b1220;color:#e6edf3;padding:16px">
+<h1>Test /midtrans/create</h1>
+<button id="go">Create</button>
+<pre id="out">-</pre>
+<script type="module">
+document.getElementById("go").onclick = async ()=>{
+  const out = document.getElementById("out");
+  try{
+    const body = { uid: (window.auth?.currentUser?.uid||"TEST"), email: (window.auth?.currentUser?.email||"test@test.com"), months: 1 };
+    const r = await fetch("/midtrans/create", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
+    const txt = await r.text();
+    let j; try{ j = JSON.parse(txt) }catch{ j = {raw:txt} }
+    out.textContent = JSON.stringify({status:r.status, ok:r.ok, data:j}, null, 2);
+    if(r.ok && (j.paymentUrl || j.redirect_url)) location.href = j.paymentUrl || j.redirect_url;
+  }catch(e){ out.textContent = "ERR: " + e.message; }
+};
+</script>

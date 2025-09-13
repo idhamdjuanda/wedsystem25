@@ -8,19 +8,105 @@
                                ],
                     "rewrites":  [
                                      {
-                                         "destination":  "/auth.html",
-                                         "source":  "/auth"
+                                         "function":  "midtransSync",
+                                         "source":  "/midtrans/sync"
                                      },
                                      {
-                                         "destination":  "/index.html",
-                                         "source":  "**"
+                                         "function":  {
+                                                          "region":  "us-central1",
+                                                          "functionId":  "ping"
+                                                      },
+                                         "source":  "/ping"
+                                     },
+                                     {
+                                         "function":  {
+                                                          "region":  "us-central1",
+                                                          "functionId":  "midtransCreate"
+                                                      },
+                                         "source":  "/midtrans/create"
+                                     },
+                                     {
+                                         "function":  {
+                                                          "region":  "us-central1",
+                                                          "functionId":  "midtransStatus"
+                                                      },
+                                         "source":  "/midtrans/status"
+                                     },
+                                     {
+                                         "function":  {
+                                                          "region":  "us-central1",
+                                                          "functionId":  "midtransNotify"
+                                                      },
+                                         "source":  "/midtrans/notify"
+                                     },
+                                     {
+                                         "destination":  "/reset.html",
+                                         "source":  "/reset"
+                                     },
+                                     {
+                                         "destination":  "/register.html",
+                                         "source":  "/register"
+                                     },
+                                     {
+                                         "destination":  "/login.html",
+                                         "source":  "/login"
+                                     },
+                                     {
+                                         "destination":  "/vendor.html",
+                                         "source":  "/dashboardvendor"
+                                     },
+                                     {
+                                         "source":  "/auth",
+                                         "destination":  "/auth.html"
+                                     },
+                                     {
+                                         "source":  "/vendor",
+                                         "destination":  "/dashboardvendor.html"
+                                     },
+                                     {
+                                         "source":  "/vendor.html",
+                                         "destination":  "/dashboardvendor.html"
+                                     },
+                                     {
+                                         "source":  "/dashboardvendor",
+                                         "destination":  "/dashboardvendor.html"
+                                     },
+                                     {
+                                         "source":  "/dev/setPlan",
+                                         "function":  "devSetPlan"
+                                     },
+                                     {
+                                         "source":  "/dev/confirmByUid",
+                                         "function":  "devConfirmByUid"
+                                     },
+                                     {
+                                         "source":  "**",
+                                         "destination":  "/index.html"
                                      }
-                                 ]
+                                 ],
+                    "headers":  [
+                                    {
+                                        "headers":  [
+                                                        {
+                                                            "key":  "Cache-Control",
+                                                            "value":  "no-cache"
+                                                        }
+                                                    ],
+                                        "source":  "**/*.html"
+                                    },
+                                    {
+                                        "headers":  [
+                                                        {
+                                                            "key":  "Cache-Control",
+                                                            "value":  "max-age=60"
+                                                        }
+                                                    ],
+                                        "source":  "**/*.js"
+                                    }
+                                ]
                 },
-    "emulators":  {
-                      "hosting":  {
-                                      "host":  "127.0.0.1",
-                                      "port":  5000
-                                  }
+    "firestore":  {
+                      "indexes":  "firestore.indexes.json",
+                      "rules":  "firestore.rules"
                   }
 }

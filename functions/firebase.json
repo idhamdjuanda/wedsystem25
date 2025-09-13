@@ -1,0 +1,21 @@
+﻿{
+  "hosting": {
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/login",            "destination": "/login.html" },
+      { "source": "/register",         "destination": "/register.html" },
+      { "source": "/forgot",           "destination": "/forgot.html" },
+      { "source": "/dashboardvendor",  "destination": "/vendor.html" },
+
+      { "source": "/ping",             "function": "ping" },
+      { "source": "/createInvoice",    "function": "createDuitkuInvoice" },
+      { "source": "/duitku-callback",  "function": "duitkuCallback" },
+
+      { "source": "**",                "destination": "/index.html" }
+    ]
+  },
+  "functions": {
+    "runtime": "nodejs22"
+  }
+}

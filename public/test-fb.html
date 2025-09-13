@@ -1,0 +1,18 @@
+﻿<!doctype html><meta charset="utf-8">
+<body style="font:14px system-ui; background:#0b1220; color:#e6edf3">
+<h1>FB Boot Diag</h1>
+<pre id="out">memuat...</pre>
+<script type="module">
+  try{
+    await import("/vendor-boot.js?v=diag");
+    const out = document.getElementById("out");
+    out.textContent = JSON.stringify({
+      ready: !!window.__firebaseReady,
+      hasApp: !!window.app,
+      hasAuth: !!window.auth,
+      hasDB: !!window.db
+    }, null, 2);
+  }catch(e){
+    document.getElementById("out").textContent = "Gagal import vendor-boot.js: " + e.message;
+  }
+</script>

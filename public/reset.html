@@ -1,0 +1,39 @@
+﻿<!doctype html><html lang="id"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Lupa Password — Wed-System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head><body class="min-h-screen bg-slate-950 text-slate-100 grid place-items-center p-6">
+<div class="w-full max-w-md space-y-4">
+  <h1 class="text-2xl font-bold">Reset Password</h1>
+  <form id="fReset" class="space-y-3">
+    <input id="email" type="email" placeholder="email" class="w-full px-3 py-2 rounded bg-slate-900 border border-slate-800"/>
+    <button class="w-full px-4 py-2 rounded bg-sky-600 hover:bg-sky-500">Kirim Link Reset</button>
+  </form>
+  <div class="text-sm"><a class="text-sky-400 hover:underline" href="/login">Kembali ke login</a></div>
+  <div id="msg" class="text-sm text-slate-400"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+const app = initializeApp({
+  apiKey: "AIzaSyCVNDoM04DtzRda1xMLj6q6FcBLkHbaicE",
+  authDomain: "wedsystem25.firebaseapp.com",
+  projectId: "wedsystem25",
+  storageBucket: "wedsystem25.firebasestorage.app",
+  messagingSenderId: "144669260555",
+  appId: "1:144669260555:web:6de0fff3c43d46a606400e"
+});
+const auth = getAuth(app);
+const msg=(t,c="text-slate-400")=>{ const el=document.getElementById("msg"); el.className="text-sm "+c; el.textContent=t; };
+
+document.getElementById("fReset").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const email=document.getElementById("email").value.trim();
+  try{
+    await sendPasswordResetEmail(auth,email);
+    msg("Link reset dikirim ke "+email,"text-emerald-400");
+  }catch(err){ msg("Gagal: "+err.message,"text-rose-400"); }
+});
+</script>
+</body></html>

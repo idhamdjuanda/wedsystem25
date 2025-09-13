@@ -1,0 +1,677 @@
+﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, addDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyCVNDoM04DtzRda1xMLj6q6FcBLkHbaicE",
+  authDomain:"wedsystem25.firebaseapp.com",
+  projectId:"wedsystem25",
+  storageBucket:"wedsystem25.firebasestorage.app",
+  messagingSenderId:"144669260555",
+  appId:"1:144669260555:web:6de0fff3c43d46a606400e"
+});
+
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const $ = (id)=>document.getElementById(id);
+
+const DAY = 86400000;
+const TRIAL_DAYS = 7;
+const rp = (n)=> new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n||0));
+
+/* ---------- Helpers UI ---------- */
+function setBadge(plan){
+  const el = $("planBadge");
+  el.textContent = String(plan||"-").toUpperCase();
+  el.className = "px-2 py-1 rounded " + (plan==="pro"?"bg-emerald-600":plan==="trial"?"bg-amber-600":"bg-rose-600");
+}
+function fmtDate(ms){ const d=new Date(ms);return `${String(d.getDate()).padStart(2,"0")}${String(d.getMonth()+1).padStart(2,"0")}${d.getFullYear()}`; }
+function startCountdown(exp){
+  function tick(){
+    const now=Date.now(), diff=exp-now;
+    if(diff<=0){ $("countdown").textContent="Expired"; setBadge("expired"); return; }
+    const s=Math.floor(diff/1000)%60,m=Math.floor(diff/60000)%60,h=Math.floor(diff/3600000)%24,d=Math.floor(diff/86400000);
+    $("countdown").textContent = `Berlaku sampai ${fmtDate(exp)} — ${d} HARI ${h} JAM ${m} MENIT ${s} DETIK`;
+  }
+  tick(); setInterval(tick,1000);
+}
+
+/* ---------- Normalizer legacy ---------- */
+const tsToMs = (t)=> (t?.toMillis ? t.toMillis() : (t?.seconds? (t.seconds*1000 + Math.floor((t.nanoseconds||0)/1e6)) : undefined));
+
+function normPrice(d){
+  return {
+    type:   d.type   ?? d.jenis   ?? d.category ?? "Wedding",
+    name:   d.name   ?? d.nama    ?? d.title    ?? "-",
+    detail: d.detail ?? d.deskripsi?? d.description ?? "",
+    amount: Number(d.amount ?? d.harga ?? d.price ?? d.nominal ?? 0)
+  };
+}
+function normAddon(d){
+  return {
+    name:   d.name ?? d.nama ?? "-",
+    price:  Number(d.price ?? d.harga ?? d.amount ?? 0),
+    createdAt: tsToMs(d.createdAt)
+  };
+}
+function normDiscount(d){
+  // tipe lama: "amount" → rupiah, "percent" → persen
+  const t = (d.type==="amount"?"rupiah": (d.type==="percent"?"percent": (d.type||"percent")));
+  return {
+    code: d.code ?? d.kode ?? "-",
+    type: (d.type2 ?? t), // jaga-jaga bila ada field lain
+    value: Number(d.value ?? d.nilai ?? d.amount ?? 0),
+    active: (d.active!==false),
+    stackable: (d.stackable!==false),
+    startAt: tsToMs(d.startAt),
+    endAt:   tsToMs(d.endAt),
+    scope:   d.scope ?? { type:"all", packageIds:[] }
+  };
+}
+function normBundle(d){
+  return {
+    name: d.name ?? d.nama ?? "Bundling",
+    pct:  Number(d.pct ?? d.discountPercent ?? d.discPct ?? 0),
+    items: d.items ?? d.packageIds ?? [],
+    active: (d.active!==false)
+  };
+}
+
+/* ---------- Renderers ---------- */
+function liCard(){
+  const li = document.createElement("li");
+  li.className = "rounded-xl border border-white/10 p-3 bg-slate-900/50";
+  return li;
+}
+function renderPriceItem(d){
+  const li = liCard();
+  li.innerHTML = `
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="font-semibold">${(d.type||"-")} — ${(d.name||"-")}</div>
+        <div class="text-xs opacity-70">${d.detail||""}</div>
+      </div>
+      <div class="text-right font-bold">${rp(d.amount)}</div>
+    </div>`;
+  return li;
+}
+function renderAddonItem(d){
+  const li = liCard();
+  li.innerHTML = `
+    <div class="flex items-center justify-between">
+      <div class="capitalize">${d.name}</div>
+      <div class="font-semibold">${rp(d.price)}</div>
+    </div>`;
+  return li;
+}
+function renderDiscountItem(d){
+  const li = liCard();
+  const val = d.type==="rupiah" ? rp(d.value) : (d.value+"%");
+  const period = (d.startAt||d.endAt) ? `<div class="text-xs opacity-70">Periode: ${d.startAt? new Date(d.startAt).toLocaleDateString("id-ID"):"-"} — ${d.endAt? new Date(d.endAt).toLocaleDateString("id-ID"):"-"}</div>` : "";
+  li.innerHTML = `
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="font-semibold">Kode: ${d.code}</div>
+        <div class="text-xs opacity-70">Tipe: ${d.type==="rupiah"?"Potong Rupiah":"Potong Persen"} • Nilai: ${val}</div>
+        ${period}
+      </div>
+      <div class="text-right text-xs">
+        <span class="px-2 py-1 rounded bg-${d.active?"emerald":"rose"}-600"> ${d.active?"Aktif":"Nonaktif"} </span>
+        ${d.stackable?'<span class="px-2 py-1 rounded bg-sky-600 ml-1">Stackable</span>':''}
+      </div>
+    </div>`;
+  return li;
+}
+let PRICE_MAP = new Map(); // id -> {name,type,amount}
+function renderBundleItem(d){
+  const li = liCard();
+  const names = (d.items||[]).map(id=>{
+    const p = PRICE_MAP.get(id);
+    return p ? `${p.type}: ${p.name}` : id;
+  });
+  li.innerHTML = `
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div class="font-semibold">${d.name}</div>
+        <div class="text-xs opacity-70">Item: ${names.length? names.join(", ") : "-"}</div>
+      </div>
+      <div class="text-right">
+        <div class="font-bold">${d.pct}%</div>
+        <div class="text-xs opacity-70">${d.active?"Aktif":"Nonaktif"}</div>
+      </div>
+    </div>`;
+  return li;
+}
+
+/* ---------- Legacy-aware loaders ---------- */
+async function loadFromCandidates(uid, candidates){
+  const results = [];
+  for (const col of candidates){
+    try{
+      const qs = await getDocs(collection(db, "vendors", uid, col));
+      qs.forEach(doc => results.push({ id: doc.id, data: doc.data(), _col: col }));
+    }catch(_){}
+  }
+  return results;
+}
+
+async function loadPricelist(uid){
+  // cari di "pricelist" atau nama lama: "packages", "paket", "daftarharga"
+  const rows = await loadFromCandidates(uid, ["pricelist","packages","paket","daftarharga"]);
+  const ul = $("priceList"); ul.innerHTML="";
+  PRICE_MAP = new Map();
+  rows.forEach(({id, data})=>{
+    const n = normPrice(data);
+    PRICE_MAP.set(id, n);
+    ul.appendChild(renderPriceItem(n));
+  });
+  // checkbox sumber bundling
+  const box = $("bundleItemsBox"); box.innerHTML="";
+  rows.forEach(({id, data})=>{
+    const n = normPrice(data);
+    const label = document.createElement("label");
+    label.className="flex items-center gap-2";
+    const cb = document.createElement("input");
+    cb.type="checkbox"; cb.value=id;
+    const span = document.createElement("span");
+    span.textContent = `${n.type} — ${n.name} (${rp(n.amount)})`;
+    label.appendChild(cb); label.appendChild(span);
+    box.appendChild(label);
+  });
+}
+
+async function loadAddons(uid){
+  // "addons", atau lama: "addon","addOn","tambahan"
+  const rows = await loadFromCandidates(uid, ["addons","addon","addOn","tambahan"]);
+  const ul = $("addonList"); ul.innerHTML="";
+  rows.forEach(({data})=> ul.appendChild(renderAddonItem(normAddon(data))));
+}
+
+async function loadDiscounts(uid){
+  // "discounts", atau lama: "promo","kupon","coupons"
+  const rows = await loadFromCandidates(uid, ["discounts","promo","kupon","coupons"]);
+  const ul = $("discList"); ul.innerHTML="";
+  rows.forEach(({data})=> ul.appendChild(renderDiscountItem(normDiscount(data))));
+}
+
+async function loadBundles(uid){
+  // "bundles", atau lama: "bundling","paketBundling"
+  const rows = await loadFromCandidates(uid, ["bundles","bundling","paketBundling"]);
+  const ul = $("bundleList"); ul.innerHTML="";
+  rows.forEach(({data})=> ul.appendChild(renderBundleItem(normBundle(data))));
+}
+
+/* ---------- Vendor doc (dengan migrasi) ---------- */
+async function findLegacyVendor(u){
+  const tries = [
+    ["uid",u.uid],["UID",u.uid],["authUid",u.uid],
+    ...(u.email?[["email",u.email],["email",(u.email||"").toLowerCase()]]:[])
+  ];
+  for(const [f,v] of tries){
+    try{
+      const qs = await getDocs(query(collection(db,"vendors"), where(f,"==",v)));
+      for(const d of qs.docs){ return {id:d.id, data:d.data()}; }
+    }catch(_){}
+  }
+  return null;
+}
+async function getOrMigrateVendorDoc(u){
+  // 1) vendors/{uid}
+  let vref = doc(db,"vendors",u.uid);
+  let snap = await getDoc(vref);
+  if(snap.exists()) return snap;
+
+  // 2) docId = email / email lower
+  if(u.email){
+    for(const key of [u.email, (u.email||"").toLowerCase()]){
+      try{
+        const s2 = await getDoc(doc(db,"vendors",key));
+        if(s2.exists()){
+          const data = { ...s2.data(), uid:u.uid, email:u.email };
+          await setDoc(vref, data, { merge:true });
+          return await getDoc(vref);
+        }
+      }catch(_){}
+    }
+  }
+
+  // 3) query legacy fields
+  const legacy = await findLegacyVendor(u);
+  if(legacy){
+    const data = { ...legacy.data, uid:u.uid, email:u.email||legacy.data.email||null };
+    await setDoc(vref, data, { merge:true });
+    return await getDoc(vref);
+  }
+
+  // 4) fresh trial
+  const exp = Date.now() + TRIAL_DAYS*DAY;
+  await setDoc(vref, {
+    uid:u.uid, email:u.email||null, plan:"trial", expiresAt:exp, createdAt:serverTimestamp(),
+    brandName:"", address:"", whatsapp:"", bankName:"", bankNumber:"", bankHolder:""
+  }, { merge:true });
+  return await getDoc(vref);
+}
+async function ensureTrialIfMissing(uid, data){
+  let exp = data.expiresAt;
+  if(!exp || typeof exp!=="number"){
+    exp = Date.now() + TRIAL_DAYS*DAY;
+    await updateDoc(doc(db,"vendors",uid), { expiresAt:exp, plan: data.plan||"trial" });
+  }
+  return exp;
+}
+
+/* ---------- Tabs ---------- */
+function initTabs(){
+  const tabs = document.querySelectorAll("#tabs .tab");
+  const panels = document.querySelectorAll(".panel");
+  const show = (name)=>{
+    tabs.forEach(b=>{
+      const active = (b.dataset.tab===name);
+      b.classList.toggle("bg-emerald-500", active);
+      b.classList.toggle("text-slate-900", active);
+      b.classList.toggle("bg-slate-800", !active);
+      b.classList.toggle("border", !active);
+      b.classList.toggle("border-white/10", !active);
+    });
+    panels.forEach(p=>p.classList.toggle("hidden", p.dataset.panel!==name));
+  };
+  tabs.forEach(b=>b.addEventListener("click", ()=>show(b.dataset.tab)));
+  show("profil");
+}
+
+/* ---------- Main ---------- */
+document.addEventListener("DOMContentLoaded", initTabs);
+
+onAuthStateChanged(auth, async (u)=>{
+  if(!u){ location.replace("/login"); return; }
+  $("email").textContent = u.email || u.uid;
+  $("logout").onclick = ()=>signOut(auth);
+
+  // vendor doc
+  let snap = await getOrMigrateVendorDoc(u);
+  let data = snap.data() || {};
+  const exp = await ensureTrialIfMissing(u.uid, data);
+  const planNow = (Date.now()>exp) ? "expired" : (data.plan || "trial");
+  setBadge(planNow); startCountdown(exp);
+
+  // isi form profil
+  ["brandName","address","whatsapp","bankName","bankNumber","bankHolder"].forEach(k=>{ $(k).value = data[k] || ""; });
+  $("formProfil").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    await updateDoc(doc(db,"vendors",u.uid),{
+      uid:u.uid, email:u.email||null,
+      brandName:$("brandName").value.trim(), address:$("address").value.trim(), whatsapp:$("whatsapp").value.trim(),
+      bankName:$("bankName").value.trim(), bankNumber:$("bankNumber").value.trim(), bankHolder:$("bankHolder").value.trim()
+    });
+    $("profilMsg").textContent = "Profil tersimpan.";
+  });
+
+  // form Pricelist (tambah baru dgn field standar)
+  $("formPrice").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    await addDoc(collection(db,"vendors",u.uid,"pricelist"),{
+      type:$("priceType").value,
+      name:$("priceName").value.trim(),
+      detail:$("priceDetail").value.trim(),
+      amount:Number($("priceAmount").value||0),
+      createdAt:serverTimestamp()
+    });
+    ["priceName","priceDetail","priceAmount"].forEach(id=>$(id).value="");
+    await loadPricelist(u.uid);
+  });
+
+  // Add-on
+  $("formAddon").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    await addDoc(collection(db,"vendors",u.uid,"addons"),{
+      name:$("addonName").value.trim(),
+      price:Number($("addonPrice").value||0),
+      createdAt:serverTimestamp()
+    });
+    ["addonName","addonPrice"].forEach(id=>$(id).value="");
+    await loadAddons(u.uid);
+  });
+
+  // Diskon
+  $("formDisc").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    await addDoc(collection(db,"vendors",u.uid,"discounts"),{
+      code:$("discCode").value.trim(),
+      type:$("discType").value,  // percent | rupiah
+      value:Number($("discValue").value||0),
+      active:true, stackable:true,
+      createdAt:serverTimestamp()
+    });
+    ["discCode","discValue"].forEach(id=>$(id).value="");
+    await loadDiscounts(u.uid);
+  });
+
+  // Bundling
+  $("formBundle").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const chosen = Array.from(document.querySelectorAll("#bundleItemsBox input[type=checkbox]:checked")).map(x=>x.value);
+    await addDoc(collection(db,"vendors",u.uid,"bundles"),{
+      name:$("bundleName").value.trim(),
+      pct:Number($("bundlePct").value||0),
+      items:chosen,
+      active:true,
+      createdAt:serverTimestamp()
+    });
+    $("bundleName").value=""; $("bundlePct").value="";
+    document.querySelectorAll("#bundleItemsBox input[type=checkbox]").forEach(x=>x.checked=false);
+    await loadBundles(u.uid);
+  });
+
+  // tombol Bayar
+  $("btnPay").addEventListener("click", async ()=>{
+    const btn=$("btnPay");
+    btn.disabled=true; btn.textContent="Membuat invoice…";
+    try{
+      const r = await fetch("/midtrans/create",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ amount:50000, uid:u.uid })
+      });
+      const txt = await r.text(); let j=null; try{ j=JSON.parse(txt); }catch{}
+      if(r.ok && j?.redirect_url){ location.href = j.redirect_url; }
+      else{
+        console.error("createInvoice failed", r.status, txt);
+        alert("Gagal membuat invoice (status "+r.status+"). Cek menu /ping; kalau offline, functions belum jalan.");
+      }
+    }catch(err){
+      console.error(err); alert("Error: "+err.message);
+    }finally{
+      btn.disabled=false; btn.textContent="Bayar / Perpanjang 1 bulan (Rp 50.000)";
+    }
+  });
+
+  // muat daftar (pakai normalizer + UI rapi)
+  await loadPricelist(u.uid);
+  await loadAddons(u.uid);
+  await loadDiscounts(u.uid);
+  await loadBundles(u.uid);
+});
+
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const btn = $("btnPay");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    if (!window.auth || !auth.currentUser) {
+      alert("Harus login dulu.");
+      return;
+    }
+    btn.disabled = true;
+    const labelAwal = btn.textContent;
+    btn.textContent = "Membuat transaksi…";
+    try {
+      const r = await fetch("/midtrans/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: 50000, uid: auth.currentUser.uid })
+      });
+      const txt = await r.text();
+      let j = null; try { j = JSON.parse(txt); } catch {}
+      // tangkap kedua kemungkinan field
+      const url = j?.redirect_url || j?.paymentUrl;
+      if (r.ok && url) {
+        if(j && j.order_id){ localStorage.setItem("lastOrderId", j.order_id); } location.href = url; // ke halaman pembayaran Midtrans
+      } else {
+        console.error("midtrans/create response:", r.status, txt);
+        alert("Gagal membuat transaksi (status " + r.status + "). Lihat Console → Network → /midtrans/create.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error: " + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = labelAwal;
+    }
+  });
+})();
+
+document.addEventListener("DOMContentLoaded", async () => {
+  try{
+    const uid = (window.auth && auth.currentUser) ? auth.currentUser.uid : null;
+    if(!uid) return;
+    const last = localStorage.getItem("lastOrderId");
+    if(!last) return;
+
+    // jika masih trial/expired baru konfirmasi (opsional: kamu bisa tambahkan cek ini dari DOM)
+    const r = await fetch("/midtrans/confirm?order_id=" + encodeURIComponent(last));
+    const txt = await r.text(); console.log("confirm:", r.status, txt);
+    // jika success:true, refresh dashboard agar status PRO terambil
+    try{ const j = JSON.parse(txt); if(j.success){ localStorage.removeItem("lastOrderId"); location.reload(); } }catch{}
+  }catch(e){ console.warn(e); }
+});
+/* ==== Helpers untuk subscription ==== */
+function normalizeMillis(v){
+  if(!v) return 0;
+  // kalau < 10^12 anggap detik → konversi ms
+  return (typeof v === "number" && v < 1e12) ? v * 1000 : Number(v);
+}
+function fmtCountdown(ms){
+  if(ms <= 0) return "Expired";
+  const s = Math.floor(ms/1000);
+  const d = Math.floor(s/86400);
+  const h = Math.floor((s%86400)/3600);
+  const m = Math.floor((s%3600)/60);
+  const sc = s%60;
+  return `${d} hari ${h} jam ${m} menit ${sc} detik`;
+}
+(() => {
+  const $ = (id) => document.getElementById(id);
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const btn = $("btnRefreshStatus");
+    if(!btn) return;
+
+    btn.addEventListener("click", async ()=>{
+      try{
+        if(!(window.auth && auth.currentUser)){
+          alert("Harus login dulu."); return;
+        }
+        // Ambil order_id terakhir yang disimpan sebelum redirect ke Snap
+        let orderId = localStorage.getItem("lastOrderId");
+        if(!orderId){
+          orderId = prompt("Masukkan ORDER_ID transaksi terakhir (kalau tidak tersimpan):");
+          if(!orderId) return;
+        }
+
+        btn.disabled = true; const lbl = btn.textContent;
+        btn.textContent = "Memeriksa status…";
+
+        const r = await fetch("/midtrans/confirm?order_id=" + encodeURIComponent(orderId));
+        const txt = await r.text(); let j=null; try{ j = JSON.parse(txt); }catch{}
+        console.log("confirm:", r.status, txt);
+
+        if(r.ok && j && j.success){
+          alert("Pembayaran terkonfirmasi. Status akan diperbarui.");
+          localStorage.removeItem("lastOrderId");
+          location.reload();
+        }else{
+          alert("Belum settlement. Status: " + (j?.transaction_status||r.status));
+        }
+
+        btn.textContent = lbl; btn.disabled = false;
+      }catch(e){
+        console.error(e); alert("Error: " + e.message);
+        btn.disabled = false;
+      }
+    });
+  });
+})();
+// Contoh refresh status langganan dari Firestore (sesuaikan selector elemenmu)
+async function renderSubscription(vendorData) {
+  const plan = vendorData?.plan || "trial";
+  const expiresAt = normalizeMillis(vendorData?.expiresAt || 0);
+  const now = Date.now();
+  const sEl = document.getElementById("subStatus");
+  const cEl = document.getElementById("subCountdown");
+
+  if(plan === "pro" && expiresAt > now){
+    if(sEl) sEl.textContent = "PRO (aktif)";
+    if(cEl) {
+      // update setiap 1 detik
+      clearInterval(window.__cdInt);
+      window.__cdInt = setInterval(()=>{
+        const left = normalizeMillis(expiresAt) - Date.now();
+        cEl.textContent = fmtCountdown(left);
+        if(left<=0){ clearInterval(window.__cdInt); location.reload(); }
+      }, 1000);
+    }
+  }else{
+    if(sEl) sEl.textContent = "TRIAL / EXPIRED";
+    if(cEl) cEl.textContent = "—";
+  }
+}
+async function getVendorDataByAnyPath(uid){
+  const paths = [
+    ["vendors", uid],
+    ["vendor",  uid],
+    ["app/vendors", uid],
+    ["app/vendor",  uid],
+  ];
+  for(const [col, id] of paths){
+    try{
+      const ref = doc(db, col, id);
+      const snap = await getDoc(ref);
+      if(snap.exists()){
+        console.log("[vendor] using path:", col+"/"+id, snap.data());
+        // tampilkan di UI kecil supaya keliatan path yang dipakai
+        const el = document.getElementById("docPath");
+        if(el) el.textContent = col+"/"+id;
+        return snap.data();
+      }
+    }catch(e){ console.warn("read fail", col, e.message); }
+  }
+  return null;
+}
+/* ==== Auto confirm Midtrans setelah redirect balik ke dashboard ==== */
+(function(){
+  // simpan order_id dari query string kalau Midtrans mengembalikan
+  const q = new URLSearchParams(location.search);
+  const fromUrl = q.get("order_id") || q.get("orderId") || q.get("order");
+  if (fromUrl) { try{ localStorage.setItem("lastOrderId", fromUrl); }catch(_){} }
+
+  async function autoConfirm(){
+    let oid = null;
+    try { oid = localStorage.getItem("lastOrderId"); } catch (_) {}
+    if(!oid) return; // tidak ada order yang perlu dikonfirmasi
+
+    try{
+      const r = await fetch("/midtrans/confirm?order_id=" + encodeURIComponent(oid));
+      const txt = await r.text(); let j=null; try{ j = JSON.parse(txt); }catch{}
+      console.log("[autoConfirm]", r.status, txt);
+
+      if(r.ok && j && j.success){
+        // sukses -> hapus lastOrderId dan reload supaya UI ambil plan=pro + expiresAt baru
+        try{ localStorage.removeItem("lastOrderId"); }catch(_){}
+        location.replace(location.pathname); // reload tanpa query string
+      }
+    }catch(e){
+      console.warn("[autoConfirm] error:", e);
+    }
+  }
+
+  // jalankan sesaat setelah DOM siap (beri delay kecil biar file lain kebaca)
+  document.addEventListener("DOMContentLoaded", ()=> setTimeout(autoConfirm, 500));
+})();
+async function getVendorDataByAnyPath(uid){
+  const paths = [
+    ["vendors", uid],
+    ["vendor",  uid],
+    ["app/vendors", uid],
+    ["app/vendor",  uid],
+  ];
+  for(const [col, id] of paths){
+    try{
+      const ref = doc(db, col, id);
+      const snap = await getDoc(ref);
+      if(snap.exists()){
+        console.log("[vendor] using path:", col+"/"+id);
+        const el = document.getElementById("docPath");
+        if(el) el.textContent = col+"/"+id;
+        return snap.data();
+      }
+    }catch(e){ console.warn("read fail", col, e.message); }
+  }
+  return null;
+}
+function tsToMillis(ts){
+  if(!ts) return 0;
+  if(typeof ts === "number") return ts < 1e12 ? ts*1000 : ts; // angka detik -> ms
+  const s = (ts.seconds ?? ts._seconds ?? 0);
+  const ns = (ts.nanoseconds ?? ts._nanoseconds ?? 0);
+  return s ? (s*1000 + Math.floor(ns/1e6)) : 0;
+}
+function normalizeMillis(v){ return tsToMillis(v); }
+function fmtCountdown(ms){
+  if(ms <= 0) return "Expired";
+  const s = Math.floor(ms/1000);
+  const d = Math.floor(s/86400);
+  const h = Math.floor((s%86400)/3600);
+  const m = Math.floor((s%3600)/60);
+  const sc = s%60;
+  return `${d} hari ${h} jam ${m} menit ${sc} detik`;
+}
+async function getVendorDataByAnyPath(uid){
+  const paths = [
+    ["vendors", uid],
+    ["vendor",  uid],
+    ["app/vendors", uid],
+    ["app/vendor",  uid],
+  ];
+  for(const [col, id] of paths){
+    try{
+      const ref = doc(db, col, id);
+      const snap = await getDoc(ref);
+      if(snap.exists()){
+        console.log("[vendor] using path:", col+"/"+id);
+        const el = document.getElementById("docPath");
+        if(el) el.textContent = col+"/"+id;
+        return snap.data();
+      }
+    }catch(e){ console.warn("read fail", col, e.message); }
+  }
+  return null;
+}
+function renderSubscription(vendorData){
+  const plan = String(vendorData?.plan || "").toLowerCase();
+  const expMs = normalizeMillis(vendorData?.expiresAt || 0);  // kita set ini sebagai ms
+  const now = Date.now();
+  const isPro = (plan === "pro") && expMs > now;
+
+  const sEl = document.getElementById("subStatus");
+  const cEl = document.getElementById("subCountdown");
+  if(sEl) sEl.textContent = isPro ? "PRO (aktif)" : "TRIAL / EXPIRED";
+
+  if(isPro && cEl){
+    clearInterval(window.__cdInt);
+    window.__cdInt = setInterval(()=>{
+      const left = normalizeMillis(vendorData?.expiresAt) - Date.now();
+      cEl.textContent = fmtCountdown(left);
+      if(left<=0){ clearInterval(window.__cdInt); location.reload(); }
+    }, 1000);
+  }else{
+    if(cEl) cEl.textContent = "—";
+  }
+
+  // panel debug kecil
+  const dbg = {
+    plan: vendorData?.plan,
+    expiresAt_raw: vendorData?.expiresAt,
+    expiresAt_ms: expMs,
+    now
+  };
+  const dbgEl = document.getElementById("debugVals");
+  if(dbgEl) dbgEl.textContent = JSON.stringify(dbg, null, 2);
+}
+document.addEventListener("DOMContentLoaded", ()=>{
+  if(!window.auth) return;
+  onAuthStateChanged(auth, async (user)=>{
+    if(!user) return;
+    const data = await getVendorDataByAnyPath(user.uid) || {};
+    renderSubscription(data);
+  });
+});
